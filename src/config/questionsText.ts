@@ -61,7 +61,7 @@ For more information about templates please read the ${chalk.underline('README.m
             frontend: 'Client Framework (React, Next.js, Vue, Angular, Svelte, SolidJS or Rapier)',
             bundle: 'Web Bundler (Vite, Bun, Webpack, Remix, ESBuild, Parcel, Rollup or ImportMap)',
             demo: 'Demo Game (Matching Pairs, Clicker, Shmup)',
-            middleware: 'Middleware (Discord Activities, Rune, Rapier Physics)'
+            middleware: `Middleware (${chalk.yellow('Tauri [NEW]')}, Discord Activities, Rune, Rapier Physics)`
         }
     },
     template: {

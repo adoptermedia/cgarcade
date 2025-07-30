@@ -26,6 +26,12 @@ export const templatesList = {
     ],
     "middleware": [
         {
+            templateName: "template tauri",
+            name: "Tauri Template",
+            description: "Phaser + Tauri",
+            url: "https://phaser.io/r/create-game-template/template-tauri"
+        },
+        {
             templateName: "phaser-rune-multiplayer-tic-tac-toe",
             name: "Rune Multiplayer Tic Tac Toe",
             description: "Phaser+Rune Multiplayer Tic-Tac-Toe",
@@ -84,6 +90,7 @@ export const templatesList = {
         "solid",
         "nextjs",
         "bun",
-        "remix"
+        "remix",
+        "tauri-template"
     ]
 }
