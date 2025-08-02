@@ -7,9 +7,10 @@ export default class Controls {
             down: Phaser.Input.Keyboard.KeyCodes.DOWN,
             left: Phaser.Input.Keyboard.KeyCodes.LEFT,
             right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
-            jump: Phaser.Input.Keyboard.KeyCodes.SPACE,
-            ctrl: Phaser.Input.Keyboard.KeyCodes.CTRL,
-            alt: Phaser.Input.Keyboard.KeyCodes.ALT
+            // Remap jump to the "S" key
+            jump: Phaser.Input.Keyboard.KeyCodes.S,
+            // New kick / speed boost action on the "A" key
+            kick: Phaser.Input.Keyboard.KeyCodes.A
         });
 
         if (scene.input.gamepad) {
@@ -39,11 +40,8 @@ export default class Controls {
         return Phaser.Input.Keyboard.JustDown(this.keys.jump) || (this.pad && this.pad.A);
     }
 
-    get ctrl() {
-        return this.keys.ctrl.isDown || (this.pad && this.pad.LB);
-    }
-
-    get alt() {
-        return this.keys.alt.isDown || (this.pad && this.pad.RB);
+    // Kick (speed boost) triggered by the "A" key or gamepad B button
+    get kick() {
+        return Phaser.Input.Keyboard.JustDown(this.keys.kick) || (this.pad && this.pad.B);
     }
 }

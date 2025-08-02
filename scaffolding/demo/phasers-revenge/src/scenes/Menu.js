@@ -13,7 +13,7 @@ export default class Menu extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        const start = this.add.text(width / 2, height / 2, 'Start Game', {
+        const start = this.add.text(width / 2, height / 2, 'Press Space, A or S to Start', {
             fontSize: '24px',
             color: '#00ff00'
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -22,13 +22,14 @@ export default class Menu extends Phaser.Scene {
 
         start.on('pointerdown', launch);
 
-        this.input.keyboard.once('keydown-SPACE', launch);
+        ['SPACE', 'A', 'S'].forEach(key => {
+            this.input.keyboard.once(`keydown-${key}`, launch);
+        });
 
         const legend = [
             'Arrow Keys / D-Pad: Move',
-            'Space or A: Jump',
-            'CTRL / LB: Trick Mod',
-            'ALT / RB: Trick Mod'
+            'S: Jump',
+            'A: Kick'
         ];
 
         this.add.text(width / 2, height / 2 + 120, legend.join('\n'), {
