@@ -1,147 +1,112 @@
 import Phaser from 'phaser';
-import Skater from '../entities/Skater';
-import Controls from '../utils/controls';
-import HUD from '../utils/hud';
-import { checkTrick } from '../utils/tricks';
 
 export default class Game extends Phaser.Scene {
     constructor() {
         super('Game');
-        this.score = 0;
-        this.currentTrick = null;
     }
 
     preload() {
-        // Create a very simple placeholder sprite sheet for the skater
-        const size = 32;
-        const canvas = this.textures.createCanvas('skater-temp', size * 5, size);
-        const ctx = canvas.getContext();
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size, size); // idle
-        ctx.fillStyle = '#bbbbbb'; ctx.fillRect(size, 0, size, size); // skate
-        ctx.fillStyle = '#ffff00'; ctx.fillRect(size * 2, 0, size, size); // jump
-        ctx.fillStyle = '#ff8800'; ctx.fillRect(size * 3, 0, size, size); // kick
-        ctx.fillStyle = '#ff00ff'; ctx.fillRect(size * 4, 0, size, size); // trick
-        canvas.refresh();
-        this.textures.addSpriteSheet('skater', canvas.canvas, { frameWidth: size, frameHeight: size });
-        this.textures.remove('skater-temp');
+        this.load.image('backdrop', 'rawart/backdrop.png');
+        // load sheet image then slice into 4x4 frames in create()
+        this.load.image('skaterSheet', 'rawart/sprites.png');
     }
 
     create() {
-        const { width, height } = this.scale;
+        // convert loaded sheet into a spritesheet with 4x4 frames
+        const sheet = this.textures.get('skaterSheet').getSourceImage();
+        const frameWidth = sheet.width / 4;
+        const frameHeight = sheet.height / 4;
+        this.textures.addSpriteSheet('skater', sheet, { frameWidth, frameHeight });
+        this.textures.remove('skaterSheet');
 
-        // Background layers
-        this.add.rectangle(0, 0, width, height, 0x87ceeb).setOrigin(0); // sky
-        this.add.rectangle(0, height - 50, width, 50, 0x228b22).setOrigin(0); // ground backdrop
+        const bg = this.add.image(0, 0, 'backdrop')
+            .setOrigin(0)
+            .setDisplaySize(this.scale.width, this.scale.height);
 
-        // Halfpipe parameters
-        this.pipe = { width, floorY: height - 70, radius: 150 };
+        const width = bg.displayWidth;
+        const height = bg.displayHeight;
 
-        // Draw the halfpipe surface
-        const g = this.add.graphics();
-        g.fillStyle(0x808080, 1);
-        const { floorY, radius } = this.pipe;
-        g.beginPath();
-        g.moveTo(0, floorY - radius);
-
-        // Approximate the pipe curve on the left side
-        for (let x = 0; x <= radius; x += 4) {
-            g.lineTo(x, this.getPipeY(x));
-        }
-
-        // Flat middle section
-        for (let x = radius; x <= width - radius; x += 4) {
-            g.lineTo(x, floorY);
-        }
-
-        // Approximate the pipe curve on the right side
-        for (let x = width - radius; x <= width; x += 4) {
-            g.lineTo(x, this.getPipeY(x));
-        }
-
-        g.lineTo(width, floorY - radius);
-        g.lineTo(width, floorY + 20);
-        g.lineTo(0, floorY + 20);
-        g.closePath();
-        g.fillPath();
-
-        this.physics.world.gravity.y = 800;
         this.physics.world.setBounds(0, 0, width, height);
+        this.cameras.main.setBounds(0, 0, width, height);
 
-        this.skater = new Skater(this, width / 2, floorY - 20);
-        this.controls = new Controls(this);
-        this.hud = new HUD(this);
+        this.player = this.physics.add.sprite(width / 2, height * 0.7, 'skater', 2);
+        this.player.setCollideWorldBounds(true);
+        this.player.setGravityY(800);
 
-        // Define animations
-        this.anims.create({ key: 'idle', frames: [{ key: 'skater', frame: 0 }] });
-        this.anims.create({ key: 'skate', frames: this.anims.generateFrameNumbers('skater', { frames: [0, 1] }), frameRate: 8, repeat: -1 });
-        this.anims.create({ key: 'jump', frames: [{ key: 'skater', frame: 2 }] });
-        this.anims.create({ key: 'kick', frames: [{ key: 'skater', frame: 3 }] });
-        this.anims.create({ key: 'trick', frames: [{ key: 'skater', frame: 4 }] });
+        this.createAnimations();
 
-        this.skater.play('idle');
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+
+        this.trickText = this.add.text(width / 2, 20, '', {
+            fontSize: '16px',
+            color: '#ffffff'
+        }).setOrigin(0.5, 0);
     }
 
-    getPipeY(x) {
-        const { width, floorY, radius } = this.pipe;
-        if (x < radius) {
-            const dx = radius - x;
-            return floorY - Math.sqrt(radius * radius - dx * dx);
-        } else if (x > width - radius) {
-            const dx = x - (width - radius);
-            return floorY - Math.sqrt(radius * radius - dx * dx);
-        }
-        return floorY;
+    createAnimations() {
+        this.anims.create({ key: 'ride-left', frames: [{ key: 'skater', frame: 0 }], frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'ride-right', frames: [{ key: 'skater', frame: 1 }], frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'idle', frames: [{ key: 'skater', frame: 2 }], frameRate: 1, repeat: -1 });
+        this.anims.create({ key: 'jump', frames: [{ key: 'skater', frame: 3 }], frameRate: 1 });
+        this.anims.create({ key: 'kickflip', frames: [{ key: 'skater', frame: 4 }], frameRate: 10 });
+        this.anims.create({ key: 'heelflip', frames: [{ key: 'skater', frame: 5 }], frameRate: 10 });
+        this.anims.create({ key: 'method-air', frames: [{ key: 'skater', frame: 6 }], frameRate: 10 });
+        this.anims.create({ key: 'spin360', frames: [{ key: 'skater', frame: 7 }], frameRate: 10 });
+        this.anims.create({ key: 'crouch', frames: [{ key: 'skater', frame: 10 }], frameRate: 10 });
+        this.anims.create({ key: 'grab-left', frames: [{ key: 'skater', frame: 12 }], frameRate: 10 });
+        this.anims.create({ key: 'grab-right', frames: [{ key: 'skater', frame: 13 }], frameRate: 10 });
+        this.anims.create({ key: 'board-flip', frames: [{ key: 'skater', frame: 14 }], frameRate: 10 });
+        this.anims.create({ key: 'recover', frames: [{ key: 'skater', frame: 15 }], frameRate: 10 });
     }
 
-    getPipeSlope(x) {
-        const { width, radius } = this.pipe;
-        if (x < radius) {
-            const dx = radius - x;
-            return dx / Math.sqrt(radius * radius - dx * dx);
-        } else if (x > width - radius) {
-            const dx = x - (width - radius);
-            return -dx / Math.sqrt(radius * radius - dx * dx);
-        }
-        return 0;
+    performTrick(animKey, label) {
+        this.player.anims.play(animKey, true);
+        this.trickText.setText(label);
+        this.time.delayedCall(800, () => this.trickText.setText(''));
     }
 
     update() {
-        this.skater.move(this.controls.left, this.controls.right);
+        const onGround = this.player.body.blocked.down;
 
-        if (this.controls.jump) {
-            this.skater.jump();
+        if (this.keyA.isDown) {
+            if (this.cursors.up.isDown) { this.performTrick('kickflip', 'Kickflip'); return; }
+            if (this.cursors.right.isDown) { this.performTrick('heelflip', 'Heelflip'); return; }
+            if (this.cursors.down.isDown) { this.performTrick('method-air', 'Method Air'); return; }
+            if (this.cursors.left.isDown) { this.performTrick('spin360', '360 Spin'); return; }
         }
 
-        if (this.controls.kick) {
-            if (this.skater.body.blocked.down || this.skater.onPipe) {
-                this.skater.kick();
-            } else {
-                this.skater.trick();
+        if (this.keyS.isDown) {
+            if (this.cursors.left.isDown) { this.performTrick('grab-left', 'Grab Left'); return; }
+            if (this.cursors.right.isDown) { this.performTrick('grab-right', 'Grab Right'); return; }
+            if (this.cursors.up.isDown) { this.performTrick('board-flip', 'Board Flip'); return; }
+            if (this.cursors.down.isDown) { this.performTrick('recover', 'Recover'); return; }
+        }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-200);
+            this.player.anims.play('ride-left', true);
+        }
+        else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(200);
+            this.player.anims.play('ride-right', true);
+        }
+        else {
+            this.player.setVelocityX(0);
+            if (onGround) {
+                this.player.anims.play('idle', true);
             }
         }
 
-        // Halfpipe collision and response
-        const pipeY = this.getPipeY(this.skater.x);
-        if (this.skater.y >= pipeY && this.skater.body.velocity.y >= 0) {
-            const slope = this.getPipeSlope(this.skater.x);
-            this.skater.onPipe = true;
-            this.skater.y = pipeY;
-            // Align vertical velocity with slope to preserve momentum
-            this.skater.body.velocity.y = this.skater.body.velocity.x * slope;
-        } else {
-            this.skater.onPipe = false;
+        if (this.cursors.up.isDown && onGround) {
+            this.player.setVelocityY(-350);
+            this.player.anims.play('jump', true);
         }
 
-        if (!this.skater.onPipe) {
-            const trick = checkTrick(this.controls);
-            if (trick && trick !== this.currentTrick) {
-                this.currentTrick = trick;
-                this.score += 100;
-                this.hud.showTrick(trick);
-                this.hud.updateScore(this.score);
-            }
-        } else {
-            this.currentTrick = null;
+        if (this.cursors.down.isDown && onGround) {
+            this.player.anims.play('crouch', true);
         }
     }
 }
+
