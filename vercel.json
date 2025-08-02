@@ -1,5 +1,9 @@
 {
-  "installCommand": "cd scaffolding/demo/phasers-revenge && npm install",
-  "buildCommand": "cd scaffolding/demo/phasers-revenge && npm run build",
-  "outputDirectory": "scaffolding/demo/phasers-revenge/dist"
+  "builds": [
+    {
+      "src": "scaffolding/demo/phasers-revenge/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "scaffolding/demo/phasers-revenge/dist" }
+    }
+  ]
 }
