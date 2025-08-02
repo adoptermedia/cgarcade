@@ -1,0 +1,5 @@
+{
+  "installCommand": "cd scaffolding/demo/phasers-revenge && npm install",
+  "buildCommand": "cd scaffolding/demo/phasers-revenge && npm run build",
+  "outputDirectory": "scaffolding/demo/phasers-revenge/dist"
+}
