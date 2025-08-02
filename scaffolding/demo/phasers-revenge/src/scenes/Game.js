@@ -12,27 +12,83 @@ export default class Game extends Phaser.Scene {
     }
 
     preload() {
-        const g = this.add.graphics();
-        g.fillStyle(0xffffff, 1);
-        g.fillRect(0, 0, 32, 16);
-        g.generateTexture('skater', 32, 16);
-        g.destroy();
+        // Create a very simple placeholder sprite sheet for the skater
+        const size = 32;
+        const canvas = this.textures.createCanvas('skater-temp', size * 5, size);
+        const ctx = canvas.getContext();
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size, size); // idle
+        ctx.fillStyle = '#bbbbbb'; ctx.fillRect(size, 0, size, size); // skate
+        ctx.fillStyle = '#ffff00'; ctx.fillRect(size * 2, 0, size, size); // jump
+        ctx.fillStyle = '#ff8800'; ctx.fillRect(size * 3, 0, size, size); // kick
+        ctx.fillStyle = '#ff00ff'; ctx.fillRect(size * 4, 0, size, size); // trick
+        canvas.refresh();
+        this.textures.addSpriteSheet('skater', canvas.canvas, { frameWidth: size, frameHeight: size });
+        this.textures.remove('skater-temp');
     }
 
     create() {
         const { width, height } = this.scale;
 
-        // Draw simple isometric halfpipe
-        const pipe = this.add.graphics({ x: width / 2, y: height / 2 + 100 });
-        pipe.fillStyle(0x808080, 1);
-        pipe.fillRect(-200, -50, 400, 100);
-        pipe.rotation = Phaser.Math.DegToRad(45);
+        // Background layers
+        this.add.rectangle(0, 0, width, height, 0x87ceeb).setOrigin(0); // sky
+        this.add.rectangle(0, height - 50, width, 50, 0x228b22).setOrigin(0); // ground backdrop
 
+        // Halfpipe parameters
+        this.pipe = { width, floorY: height - 70, radius: 150 };
+
+        // Draw the halfpipe surface
+        const g = this.add.graphics();
+        g.fillStyle(0x808080, 1);
+        const { floorY, radius } = this.pipe;
+        g.beginPath();
+        g.moveTo(0, floorY - radius);
+        g.quadraticBezierTo(radius, floorY - radius, radius, floorY);
+        g.lineTo(width - radius, floorY);
+        g.quadraticBezierTo(width - radius, floorY - radius, width, floorY - radius);
+        g.lineTo(width, floorY + 20);
+        g.lineTo(0, floorY + 20);
+        g.closePath();
+        g.fillPath();
+
+        this.physics.world.gravity.y = 800;
         this.physics.world.setBounds(0, 0, width, height);
 
-        this.skater = new Skater(this, width / 2, height / 2 - 50);
+        this.skater = new Skater(this, width / 2, floorY - 20);
         this.controls = new Controls(this);
         this.hud = new HUD(this);
+
+        // Define animations
+        this.anims.create({ key: 'idle', frames: [{ key: 'skater', frame: 0 }] });
+        this.anims.create({ key: 'skate', frames: this.anims.generateFrameNumbers('skater', { frames: [0, 1] }), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: 'jump', frames: [{ key: 'skater', frame: 2 }] });
+        this.anims.create({ key: 'kick', frames: [{ key: 'skater', frame: 3 }] });
+        this.anims.create({ key: 'trick', frames: [{ key: 'skater', frame: 4 }] });
+
+        this.skater.play('idle');
+    }
+
+    getPipeY(x) {
+        const { width, floorY, radius } = this.pipe;
+        if (x < radius) {
+            const dx = radius - x;
+            return floorY - Math.sqrt(radius * radius - dx * dx);
+        } else if (x > width - radius) {
+            const dx = x - (width - radius);
+            return floorY - Math.sqrt(radius * radius - dx * dx);
+        }
+        return floorY;
+    }
+
+    getPipeSlope(x) {
+        const { width, radius } = this.pipe;
+        if (x < radius) {
+            const dx = radius - x;
+            return dx / Math.sqrt(radius * radius - dx * dx);
+        } else if (x > width - radius) {
+            const dx = x - (width - radius);
+            return -dx / Math.sqrt(radius * radius - dx * dx);
+        }
+        return 0;
     }
 
     update() {
@@ -42,7 +98,27 @@ export default class Game extends Phaser.Scene {
             this.skater.jump();
         }
 
-        if (!this.skater.body.blocked.down) {
+        if (this.controls.kick) {
+            if (this.skater.body.blocked.down || this.skater.onPipe) {
+                this.skater.kick();
+            } else {
+                this.skater.trick();
+            }
+        }
+
+        // Halfpipe collision and response
+        const pipeY = this.getPipeY(this.skater.x);
+        if (this.skater.y >= pipeY && this.skater.body.velocity.y >= 0) {
+            const slope = this.getPipeSlope(this.skater.x);
+            this.skater.onPipe = true;
+            this.skater.y = pipeY;
+            // Align vertical velocity with slope to preserve momentum
+            this.skater.body.velocity.y = this.skater.body.velocity.x * slope;
+        } else {
+            this.skater.onPipe = false;
+        }
+
+        if (!this.skater.onPipe) {
             const trick = checkTrick(this.controls);
             if (trick && trick !== this.currentTrick) {
                 this.currentTrick = trick;
