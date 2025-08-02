@@ -1,20 +1,20 @@
+// Trick combinations now rely on the kick button instead of Ctrl / Alt
 export const TRICKS = [
-    { keys: ['ctrl', 'up'], name: 'Kickflip' },
-    { keys: ['alt', 'down'], name: 'Heelflip' },
-    { keys: ['ctrl', 'left', 'down'], name: '360 Spin' },
-    { keys: ['alt', 'right', 'up'], name: 'Method Air' },
-    { keys: ['ctrl', 'right'], name: 'Indy Grab' },
-    { keys: ['alt', 'left'], name: 'Nosegrab' },
-    { keys: ['ctrl', 'up', 'left'], name: 'Stalefish' },
-    { keys: ['alt', 'up', 'right'], name: 'Tailgrab' },
-    { keys: ['ctrl', 'down', 'right'], name: 'Japan Air' },
-    { keys: ['alt', 'down', 'left'], name: 'Melon' }
+    { keys: ['kick', 'up'], name: 'Kickflip' },
+    { keys: ['kick', 'down'], name: 'Heelflip' },
+    { keys: ['kick', 'left', 'down'], name: '360 Spin' },
+    { keys: ['kick', 'right', 'up'], name: 'Method Air' },
+    { keys: ['kick', 'right'], name: 'Indy Grab' },
+    { keys: ['kick', 'left'], name: 'Nosegrab' },
+    { keys: ['kick', 'up', 'left'], name: 'Stalefish' },
+    { keys: ['kick', 'up', 'right'], name: 'Tailgrab' },
+    { keys: ['kick', 'down', 'right'], name: 'Japan Air' },
+    { keys: ['kick', 'down', 'left'], name: 'Melon' }
 ];
 
 export function checkTrick(controls) {
     const pressed = [];
-    if (controls.ctrl) pressed.push('ctrl');
-    if (controls.alt) pressed.push('alt');
+    if (controls.kick) pressed.push('kick');
     if (controls.up) pressed.push('up');
     if (controls.down) pressed.push('down');
     if (controls.left) pressed.push('left');
